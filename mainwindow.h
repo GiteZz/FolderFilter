@@ -4,6 +4,7 @@
 #include <QMainWindow>
 #include <QPushButton>
 #include <QLineEdit>
+#include <QKeyEvent>
 struct nameStruct{
     std::vector<QString> catNames;
     std::vector<std::vector<bool> > catAllowed;
@@ -28,7 +29,9 @@ private slots:
     void setLocationSlot(QWidget *PB);
 
     void on_nameComboBox_currentIndexChanged(int index);
-
+    
+    void keyPressEvent(QKeyEvent * event);
+    void keyReleaseEvent(QKeyEvent *event);
 private:
 
     Ui::MainWindow *ui;
@@ -52,6 +55,8 @@ private:
     int currentIndex;
 
     bool fillingCombobox;
+    
+    QList<int> currentKeys;
 };
 
 #endif // MAINWINDOW_H

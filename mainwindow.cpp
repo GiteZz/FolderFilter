@@ -5,6 +5,16 @@
 #include <QDebug>
 #include <QSignalMapper>
 #include <QObject>
+#include <QKeyEvent>
+
+enum keys{
+    SHIFT=16777248,
+    CONTROL=16777249,
+    ALT=16777251,
+    NKEY=78,
+    LKEY=76
+};
+
 
 MainWindow::MainWindow(QWidget *parent) :
     QMainWindow(parent),
@@ -15,6 +25,8 @@ MainWindow::MainWindow(QWidget *parent) :
     name_struct = readFile(QDir::currentPath() + "/names.txt");
     location_struct = readFile(QDir::currentPath() + "/locations.txt");
 
+
+    //Only debug
     for(int i = 0; i < name_struct.catNames.size(); i++){
         qDebug() << name_struct.catNames.at(i);
         qDebug() << "categories: " << " " << name_struct.catAllowed.at(i).at(0) << " " << name_struct.catAllowed.at(i).at(1) << " " << name_struct.catAllowed.at(i).at(2);
@@ -326,4 +338,63 @@ void MainWindow::on_nameComboBox_currentIndexChanged(int index)
         currentIndex = index;
         setNameVertLay();
     }
+}
+
+void MainWindow::setImage(QString path){
+    //ui->imageLabel->set
+}
+
+void MainWindow::keyPressEvent(QKeyEvent * event){
+    currentKeys.append(event->key());
+}
+
+void MainWindow::keyReleaseEvent(QKeyEvent *event){
+    currentKeys.removeAt(currentKeys.indexOf(event->key()));
+}
+
+void MainWindow::handleKeys(){
+    std::vector<int> numbers = containsNumber();
+    if(currentKeys.contains(SHIFT) && numbers.size()>0){
+        for(int i = 0; i < numbers.size(); i++){
+            
+        }
+    }
+}
+
+int MainWindow::isNumber(int key){
+    switch (key)
+    {
+    case 38:
+        return 0;
+    case 201:
+        return 1;
+    case 34:
+        return 2;
+    case 39:
+        return 3;
+    case 40:
+        return 4;
+    case 167:
+        return 5;
+    case 200:
+        return 6;
+    case 33:
+        return 7;
+    case 199:
+        return 8;
+    case 192:
+        return 9;
+    case 48:
+        return 9;
+    }
+    if(key>=49 && key<=57)return key-49;
+    return -1;
+}
+
+std::vector<int> MainWindow::containsNumber(){
+    std::vector<int> ret;
+    for(int i = 0; i < currentKeys.length(); i++){
+        if(isNumber(currentKeys.at(i))>=0)ret.push_back(isNumber(currentKeys.at(i)));
+    }
+    return ret;
 }
