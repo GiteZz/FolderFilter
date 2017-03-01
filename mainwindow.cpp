@@ -1,19 +1,17 @@
 #include "mainwindow.h"
+#include "handlesettings.h"
 #include "ui_mainwindow.h"
+#include "structs.h"
+#include "enums.h"
+
 #include <QDirIterator>
 #include <QFileDialog>
 #include <QDebug>
 #include <QSignalMapper>
 #include <QObject>
 #include <QKeyEvent>
-
-enum keys{
-    SHIFT=16777248,
-    CONTROL=16777249,
-    ALT=16777251,
-    NKEY=78,
-    LKEY=76
-};
+#include <QtWidgets>
+#include <qvideowidget.h>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -22,30 +20,39 @@ MainWindow::MainWindow(QWidget *parent) :
 {
     ui->setupUi(this);
     qDebug() << "Started in: " << QDir::currentPath();
-    name_struct = readFile(QDir::currentPath() + "/names.txt");
-    location_struct = readFile(QDir::currentPath() + "/locations.txt");
 
 
-    //Only debug
-    for(int i = 0; i < name_struct.catNames.size(); i++){
-        qDebug() << name_struct.catNames.at(i);
-        qDebug() << "categories: " << " " << name_struct.catAllowed.at(i).at(0) << " " << name_struct.catAllowed.at(i).at(1) << " " << name_struct.catAllowed.at(i).at(2);
-        for(int x = 0; x < name_struct.names.at(i).size(); x++){
-            qDebug() << "  -" << name_struct.names.at(i).at(x);
-        }
-    }
+    std::vector<QString> locationFiles = handleSettings::getInfoFromTag(QDir::currentPath() + "/settings.txt","<location>");
+    std::vector<QString> nameFiles = handleSettings::getInfoFromTag(QDir::currentPath() + "/settings.txt","<name>");
 
-    currentIndex = 0;
+    location_struct = handleSettings::readFile(locationFiles);
+    name_struct =  handleSettings::readFile(nameFiles);
+
+    currentNameIndex = 0;
+    currentLocIndex = 0;
+
+    fileSet = false;
 
     nameLEList = new QList<QLineEdit *>;
     namePBList = new QList<QPushButton *>;
     locationLEList = new QList<QLineEdit *>;
     locationPBList = new QList<QPushButton *>;
 
-    setNameVertLay();
-    setNameComBox();
-    setLocVertLay();
-    setLocComBox();
+    player = new QMediaPlayer();
+
+    ui->volumeSlider->setValue(50);
+    videoWidget = new QVideoWidget;
+
+    ui->videoLayout->addWidget(videoWidget);
+
+    player->setVideoOutput(videoWidget);
+
+    videoWidget->hide();
+
+    //
+    //
+    //
+    //
 }
 
 MainWindow::~MainWindow()
@@ -75,13 +82,7 @@ void MainWindow::openFolder(){
         dirIt.next();
         if (QFileInfo(dirIt.filePath()).isFile())
         {
-            if (QFileInfo(dirIt.filePath()).suffix() == "bmp" ||
-                QFileInfo(dirIt.filePath()).suffix() == "mp3" ||
-                QFileInfo(dirIt.filePath()).suffix() == "jpg" ||
-                QFileInfo(dirIt.filePath()).suffix() == "png" ||
-                QFileInfo(dirIt.filePath()).suffix() == "jpeg" ||
-                QFileInfo(dirIt.filePath()).suffix() == "avi" ||
-                QFileInfo(dirIt.filePath()).suffix() == "gif")
+            if (getFileType(dirIt.filePath()) >= 0)
             {
                 filepaths.push_back(dirIt.filePath());
             }
@@ -92,6 +93,13 @@ void MainWindow::openFolder(){
     for(int i = 0; i < filepaths.size(); i++){
         ui->itemListWidget->addItem(QFileInfo(filepaths.at(i)).fileName());
     }
+
+    //TEMP
+    if(!fileSet){
+        qDebug() << "no file set, setting first file";
+        setFile(0);
+    }
+
     qDebug() << "Filled uiListWidget";
     qDebug() << "~openFolder()";
 }
@@ -119,7 +127,7 @@ void MainWindow::setNameVertLay(){
     nameLEList->clear();
     namePBList->clear();
 
-    for(int i = 0; i < name_struct.names.at(currentIndex).size(); i++){
+    for(int i = 0; i < name_struct.names.at(allowableNames.at(currentNameIndex)).size(); i++){
         qDebug() << "dd";
         QPushButton *add = new QPushButton("+");
         ui->namePBVerticalLayout->addWidget(add);
@@ -134,7 +142,7 @@ void MainWindow::setNameVertLay(){
 
         namePBList->append(add);
 
-        QLineEdit *addLine = new QLineEdit(name_struct.names.at(currentIndex).at(i));
+        QLineEdit *addLine = new QLineEdit(name_struct.names.at(allowableNames.at(currentNameIndex)).at(i));
         ui->nameVerticalLayout->addWidget(addLine);
         nameLEList->append(addLine);
 
@@ -146,21 +154,23 @@ void MainWindow::setNameVertLay(){
 void MainWindow::setLocVertLay(){
     qDebug() << "setLocVertLay()";
 
+    //Clear the layouts
     while(ui->locationVerticalLayout->count() != 0){
         QLayoutItem *item = ui->locationVerticalLayout->takeAt(0);
         delete item->widget();
         delete item;
     }
     while(ui->locationPBVerticalLayout->count() != 0){
-        QLayoutItem *item = ui->locationVerticalLayout->takeAt(0);
+        QLayoutItem *item = ui->locationPBVerticalLayout->takeAt(0);
         delete item->widget();
         delete item;
     }
 
+    //Clear the lists
     locationLEList->clear();
     locationPBList->clear();
-
-    for(int i = 0; i < location_struct.names.at(currentIndex).size(); i++){
+    qDebug() << "cleared";
+    for(int i = 0; i < location_struct.names.at(allowableLocations.at(currentLocIndex)).size(); i++){
         qDebug() << "dd";
         QPushButton *add = new QPushButton("+");
         ui->locationPBVerticalLayout->addWidget(add);
@@ -175,7 +185,7 @@ void MainWindow::setLocVertLay(){
 
         locationPBList->append(add);
 
-        QLineEdit *addLine = new QLineEdit(location_struct.names.at(currentIndex).at(i));
+        QLineEdit *addLine = new QLineEdit(location_struct.names.at(allowableLocations.at(currentLocIndex)).at(i));
         ui->locationVerticalLayout->addWidget(addLine);
         locationLEList->append(addLine);
 
@@ -184,58 +194,6 @@ void MainWindow::setLocVertLay(){
     qDebug() << "~setLocVertLay()";
 }
 
-struct nameStruct MainWindow::readFile(QString location){
-    qDebug() << "readFile()";
-    QFile file(location);
-
-    if(!file.open(QIODevice::ReadOnly | QIODevice::Text)){
-        qDebug() << "Failed to open file: " << location;
-    }
-
-    QTextStream in(&file);
-
-    // true if inside categorie, used for checking if safefile is valid
-    bool catOpened = false;
-
-    nameStruct fileStruct;
-    std::vector<QString> nameFiller;
-    std::vector<bool> catFiller;
-
-
-    while(!in.atEnd()){
-        QString line = in.readLine();
-        if(line.contains('{') && !catOpened){
-            catOpened = true;
-            catFiller.clear();
-            QString name = line.section('-',0,0).simplified();
-            fileStruct.catNames.push_back(name);
-
-            QString cat = line.section('-',1,1);
-
-            catFiller.push_back(cat.contains("image"));
-            catFiller.push_back(cat.contains("music"));
-            catFiller.push_back(cat.contains("video"));
-
-            if(cat.contains("all")){
-                for(int i = 0; i < 3; i++)catFiller.at(i) = 1;
-            }
-
-            fileStruct.catAllowed.push_back(catFiller);
-
-        }else if(line.contains('{') && catOpened)
-            qDebug() << "Categorie opened before closing!";
-
-        else if(line.contains('}')){
-            catOpened = false;
-            fileStruct.names.push_back(nameFiller);
-            nameFiller.clear();
-        }
-        else if(line.count() != 0)nameFiller.push_back(line.simplified());
-    }
-    qDebug() << "~readFile()";
-    return fileStruct;
-
-}
 
 void MainWindow::writeSaveFiles(){
     qDebug() << "writeSaveFiles()";
@@ -316,32 +274,49 @@ void MainWindow::setLocationSlot(QWidget *PB){
 
 void MainWindow::setNameComBox(){
    qDebug() << "setNameComBox()";
-   fillingCombobox = true;
-   for(int i = 0; i < name_struct.catNames.size(); i++){
-    ui->nameComboBox->addItem(name_struct.catNames.at(i));
+   fillingNameCombobox = true;
+   for(int i = 0; i < allowableNames.size(); i++){
+    ui->nameComboBox->addItem(name_struct.catNames.at(allowableNames.at(i)));
    }
-   fillingCombobox = false;
+   fillingNameCombobox = false;
     qDebug() << "~setNameComBox()";
 }
 
 void MainWindow::setLocComBox(){
    qDebug() << "setLocComBox";
-  for(int i = 0; i < location_struct.catNames.size(); i++){
-    ui->locationComboBox->addItem(location_struct.catNames.at(i));
+   fillingLocCombobox = true;
+  for(int i = 0; i < allowableLocations.size(); i++){
+    ui->locationComboBox->addItem(location_struct.catNames.at(allowableLocations.at(i)));
   }
+  fillingLocCombobox = false;
   qDebug() << "~SetLocComBox";
 }
 
 void MainWindow::on_nameComboBox_currentIndexChanged(int index)
 {
-    if(!fillingCombobox){
-        currentIndex = index;
+    if(!fillingNameCombobox){
+        currentNameIndex = index;
         setNameVertLay();
     }
 }
 
-void MainWindow::setImage(QString path){
-    //ui->imageLabel->set
+bool MainWindow::setImage(QString path){
+    QPixmap image(path);
+    ui->imageLabel->setPixmap(image);
+}
+
+bool MainWindow::setAudio(QString path){
+    qDebug() << "setAudio()";
+    player->setMedia(QUrl::fromLocalFile(path));
+    player->setVolume(ui->volumeSlider->value());
+    player->play();
+    qDebug() << "~setAudio()";
+}
+
+bool MainWindow::setVideo(QString path){
+    player->setMedia(QUrl::fromLocalFile(path));
+    videoWidget->show();
+    player->play();
 }
 
 void MainWindow::keyPressEvent(QKeyEvent * event){
@@ -397,4 +372,81 @@ std::vector<int> MainWindow::containsNumber(){
         if(isNumber(currentKeys.at(i))>=0)ret.push_back(isNumber(currentKeys.at(i)));
     }
     return ret;
+}
+
+//Clear everything, set file, doesn't delete anything, deleting should be handled by other function
+void MainWindow::setFile(int index){
+    //Check if image/sound/video/..
+    if(index >= filepaths.size()){
+        qDebug() << "No next file available";
+    }else{
+        int fileType = getFileType(filepaths.at(index));
+
+        allowableLocations.clear();
+        allowableNames.clear();
+        //Calculate allowable types image/music/video
+        for(int i = 0; i < name_struct.catAllowed.size(); i++){
+            if(name_struct.catAllowed.at(i).at(fileType)){
+                allowableNames.push_back(i);
+            }
+        }
+
+        for(int i = 0; i < location_struct.catAllowed.size(); i++){
+            if(location_struct.catAllowed.at(i).at(fileType)){
+                allowableLocations.push_back(i);
+            }
+        }
+
+        if(fileType == -1){
+            qDebug() << "Wrong filetype! Shouldn't happen";
+        }else if (fileType == 0){
+            //Image file
+            setImage(filepaths.at(index));
+        }else if (fileType == 1){
+            //Image file
+            setAudio(filepaths.at(index));
+        }else if(fileType == 2){
+            //Video file
+            setVideo(filepaths.at(index));
+        }
+
+        setNameVertLay();
+        setNameComBox();
+        setLocVertLay();
+        setLocComBox();
+    }
+}
+
+
+//Determines filetype, gives positive if valid type, otherwise return -1;
+int MainWindow::getFileType(QString filename){
+    if(QFileInfo(filename).suffix() == "bmp" ||
+            QFileInfo(filename).suffix() == "jpg" ||
+            QFileInfo(filename).suffix() == "png" ||
+            QFileInfo(filename).suffix() == "jpeg"||
+            QFileInfo(filename).suffix() == "JPG" ||
+            QFileInfo(filename).suffix() == "gif"){
+
+        return 0;
+    }else if(QFileInfo(filename).suffix() == "mp3"){
+
+        return 1;
+    }else if(QFileInfo(filename).suffix() == "avi" ||
+             QFileInfo(filename).suffix() == "mp4"){
+
+        return 2;
+    }else return -1;
+}
+
+void MainWindow::on_locationComboBox_currentIndexChanged(int index)
+{
+    if(!fillingLocCombobox){
+        currentLocIndex = index;
+        setLocVertLay();
+    }
+}
+
+void MainWindow::on_volumeSlider_sliderMoved(int position)
+{
+    player->setVolume(position);
 }

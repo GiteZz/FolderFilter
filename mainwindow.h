@@ -5,11 +5,11 @@
 #include <QPushButton>
 #include <QLineEdit>
 #include <QKeyEvent>
-struct nameStruct{
-    std::vector<QString> catNames;
-    std::vector<std::vector<bool> > catAllowed;
-    std::vector<std::vector<QString> > names;
-};
+#include <QMediaPlayer>
+
+#include "structs.h"
+#include <qvideowidget.h>
+
 
 namespace Ui {
 class MainWindow;
@@ -32,6 +32,19 @@ private slots:
     
     void keyPressEvent(QKeyEvent * event);
     void keyReleaseEvent(QKeyEvent *event);
+
+    bool setImage(QString path);
+
+    void handleKeys();
+
+    std::vector<int> containsNumber();
+
+    int isNumber(int key);
+
+    void on_locationComboBox_currentIndexChanged(int index);
+
+    void on_volumeSlider_sliderMoved(int position);
+
 private:
 
     Ui::MainWindow *ui;
@@ -52,11 +65,27 @@ private:
     void setNameComBox();
     void setLocComBox();
 
-    int currentIndex;
+    int currentNameIndex;
+    int currentLocIndex;
 
-    bool fillingCombobox;
+    bool fillingNameCombobox;
+    bool fillingLocCombobox;
+
+    bool fileSet;
     
     QList<int> currentKeys;
+
+    int getFileType(QString filename);
+    void setFile(int index);
+
+    QMediaPlayer *player;
+    QVideoWidget *videoWidget;
+
+    bool setAudio(QString path);
+    bool setVideo(QString path);
+
+    std::vector<int> allowableNames;
+    std::vector<int> allowableLocations;
 };
 
 #endif // MAINWINDOW_H

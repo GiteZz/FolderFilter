@@ -4,7 +4,7 @@
 #
 #-------------------------------------------------
 
-QT       += core gui
+QT       += core gui multimedia multimediawidgets
 
 greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
 
@@ -17,6 +17,8 @@ SOURCES += main.cpp\
     handlesettings.cpp
 
 HEADERS  += mainwindow.h \
-    handlesettings.h
+    handlesettings.h \
+    structs.h \
+    enums.h
 
 FORMS    += mainwindow.ui

@@ -9,7 +9,8 @@ class handleSettings
 public:
     handleSettings();
 
-    std::vector<QString> handleSettings::getLocationFiles(QString settingsFileLocation);
+    static std::vector<QString> getInfoFromTag(QString settingsFileLocation,QString tag);
+    static struct nameStruct readFile(std::vector<QString> location);
 };
 
 #endif // HANDLESETTINGS_H
