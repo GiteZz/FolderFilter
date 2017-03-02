@@ -48,11 +48,6 @@ MainWindow::MainWindow(QWidget *parent) :
     player->setVideoOutput(videoWidget);
 
     videoWidget->hide();
-
-    //
-    //
-    //
-    //
 }
 
 MainWindow::~MainWindow()
@@ -194,7 +189,6 @@ void MainWindow::setLocVertLay(){
     qDebug() << "~setLocVertLay()";
 }
 
-
 void MainWindow::writeSaveFiles(){
     qDebug() << "writeSaveFiles()";
 
@@ -320,7 +314,25 @@ bool MainWindow::setVideo(QString path){
 }
 
 void MainWindow::keyPressEvent(QKeyEvent * event){
+    /*
     currentKeys.append(event->key());
+    qDebug() << currentKeys;
+    if(currentKeys.contains(CONTROL)){
+        if(currentKeys.contains(KEY_K)){
+            on_keepButton_clicked();
+        }else if(currentKeys.contains(KEY_N)){
+            on_saveNextButton_clicked();
+        }else if(currentKeys.contains(KEY_S)){
+            on_saveButton_clicked();
+        }else if(currentKeys.contains(KEY_O)){
+            openFolder();
+        }
+    }
+    */
+
+    qDebug("At least came here");
+        QString text = event->text();
+        qDebug() << text;
 }
 
 void MainWindow::keyReleaseEvent(QKeyEvent *event){
@@ -376,6 +388,10 @@ std::vector<int> MainWindow::containsNumber(){
 
 //Clear everything, set file, doesn't delete anything, deleting should be handled by other function
 void MainWindow::setFile(int index){
+    videoWidget->hide();
+    player->stop();
+    ui->imageLabel->clear();
+    ui->timeSlider->setValue(0);
     //Check if image/sound/video/..
     if(index >= filepaths.size()){
         qDebug() << "No next file available";
@@ -417,7 +433,6 @@ void MainWindow::setFile(int index){
     }
 }
 
-
 //Determines filetype, gives positive if valid type, otherwise return -1;
 int MainWindow::getFileType(QString filename){
     if(QFileInfo(filename).suffix() == "bmp" ||
@@ -449,4 +464,83 @@ void MainWindow::on_locationComboBox_currentIndexChanged(int index)
 void MainWindow::on_volumeSlider_sliderMoved(int position)
 {
     player->setVolume(position);
+}
+
+void MainWindow::saveFile(){
+    QFile f(filepaths.at(0));
+    f.open(QIODevice::ReadOnly);
+
+    QFileInfo in = QFileInfo(filepaths.at(0));
+    QString ext = in.suffix();
+    QString name = ui->completeNameLineEdit->text();
+    QString path = ui->completeLocationLineEdit->text();
+    QString saveName;
+    if (path[path.length()-1]=='/')
+    {
+        saveName = path + name + "." + ext;
+    }
+    else
+    {
+        saveName = path + "/" + name + "." + ext;
+    }
+    f.copy(saveName);
+
+
+    //f.remove(filepaths.at(currentImageIndex));
+    f.close();
+}
+
+void MainWindow::on_saveButton_clicked()
+{
+    saveFile();
+    ui->completeLocationLineEdit->setText("");
+    ui->completeNameLineEdit->setText("");
+}
+
+void MainWindow::on_saveNextButton_clicked()
+{
+    saveFile();
+    ui->completeLocationLineEdit->setText("");
+    ui->completeNameLineEdit->setText("");
+    qDebug() << removeFile(filepaths.at(0));
+
+    delete ui->itemListWidget->takeItem(0);
+    filepaths.erase(filepaths.begin());
+    setFile(0);
+
+}
+
+bool MainWindow::removeFile(QString filePath){
+    QFile f(filePath);
+    return f.remove();
+}
+
+void MainWindow::on_keepButton_clicked()
+{
+    ui->completeLocationLineEdit->setText("");
+    ui->completeNameLineEdit->setText("");
+
+    delete ui->itemListWidget->takeItem(0);
+    filepaths.erase(filepaths.begin());
+    setFile(0);
+}
+
+void MainWindow::on_timeSlider_sliderMoved(int position)
+{
+    qint64 dur = player->duration();
+    player->setPosition((position/100.0)*dur);
+}
+
+
+bool MainWindow::eventFilter(QObject *object, QEvent *event)
+{
+    if (object == this && event->type() == QEvent::KeyPress) {
+        QKeyEvent *keyEvent = static_cast<QKeyEvent *>(event);
+        if (keyEvent->key() == Qt::Key_W) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+    return false;
 }

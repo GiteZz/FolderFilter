@@ -22,6 +22,7 @@ class MainWindow : public QMainWindow
 public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
+    bool eventFilter(QObject *object, QEvent *event);
 
 private slots:
     void on_addFolderButton_clicked();
@@ -44,6 +45,14 @@ private slots:
     void on_locationComboBox_currentIndexChanged(int index);
 
     void on_volumeSlider_sliderMoved(int position);
+
+    void on_saveButton_clicked();
+
+    void on_saveNextButton_clicked();
+
+    void on_keepButton_clicked();
+
+    void on_timeSlider_sliderMoved(int position);
 
 private:
 
@@ -86,6 +95,9 @@ private:
 
     std::vector<int> allowableNames;
     std::vector<int> allowableLocations;
+
+    void saveFile();
+    bool removeFile(QString filePath);
 };
 
 #endif // MAINWINDOW_H

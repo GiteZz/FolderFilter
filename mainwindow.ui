@@ -171,6 +171,45 @@
     </property>
     <layout class="QVBoxLayout" name="videoLayout"/>
    </widget>
+   <widget class="QPushButton" name="saveButton">
+    <property name="geometry">
+     <rect>
+      <x>540</x>
+      <y>690</y>
+      <width>80</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Save</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="saveNextButton">
+    <property name="geometry">
+     <rect>
+      <x>630</x>
+      <y>690</y>
+      <width>80</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Save &amp; Next</string>
+    </property>
+   </widget>
+   <widget class="QPushButton" name="keepButton">
+    <property name="geometry">
+     <rect>
+      <x>720</x>
+      <y>690</y>
+      <width>80</width>
+      <height>25</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Keep</string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">
