@@ -295,8 +295,12 @@ void MainWindow::on_nameComboBox_currentIndexChanged(int index)
 }
 
 bool MainWindow::setImage(QString path){
+    qDebug() << "setImage()";
     QPixmap image(path);
+    qDebug() << path;
     ui->imageLabel->setPixmap(image);
+    ui->imageLabel->raise();
+    ui->imageLabel->show();
 }
 
 bool MainWindow::setAudio(QString path){
@@ -304,41 +308,35 @@ bool MainWindow::setAudio(QString path){
     player->setMedia(QUrl::fromLocalFile(path));
     player->setVolume(ui->volumeSlider->value());
     player->play();
+    player->setPosition(5000);
     qDebug() << "~setAudio()";
 }
 
 bool MainWindow::setVideo(QString path){
+    qDebug() << "setVideo()";
     player->setMedia(QUrl::fromLocalFile(path));
     videoWidget->show();
     player->play();
 }
 
-void MainWindow::keyPressEvent(QKeyEvent * event){
-    /*
-    currentKeys.append(event->key());
-    qDebug() << currentKeys;
-    if(currentKeys.contains(CONTROL)){
-        if(currentKeys.contains(KEY_K)){
-            on_keepButton_clicked();
-        }else if(currentKeys.contains(KEY_N)){
-            on_saveNextButton_clicked();
-        }else if(currentKeys.contains(KEY_S)){
-            on_saveButton_clicked();
-        }else if(currentKeys.contains(KEY_O)){
-            openFolder();
+void MainWindow::handleHotKey(QList<int> keys){
+    qDebug() << "handleHotKey()";
+    if(keys.contains(CONTROL) && keys.size() == 2){
+        int index = 1 - keys.indexOf(CONTROL);
+        int number = isNumber(keys.at(index));
+        if(number > -1 && number < allowableNames.size()){
+            currentNameIndex = number;
+            ui->nameComboBox->setCurrentIndex(currentNameIndex);
+        }
+    }else if(keys.contains(ALT) && keys.size() == 2){
+        int index = 1 - keys.indexOf(ALT);
+        int number = isNumber(keys.at(index));
+        if(number > -1 && number < allowableLocations.size()){
+            currentLocIndex = number;
+            ui->locationComboBox->setCurrentIndex(currentLocIndex);
         }
     }
-    */
-
-    qDebug("At least came here");
-        QString text = event->text();
-        qDebug() << text;
 }
-
-void MainWindow::keyReleaseEvent(QKeyEvent *event){
-    currentKeys.removeAt(currentKeys.indexOf(event->key()));
-}
-
 void MainWindow::handleKeys(){
     std::vector<int> numbers = containsNumber();
     if(currentKeys.contains(SHIFT) && numbers.size()>0){

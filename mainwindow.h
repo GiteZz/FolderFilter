@@ -23,6 +23,7 @@ public:
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
     bool eventFilter(QObject *object, QEvent *event);
+    void handleHotKey(QList<int> keys);
 
 private slots:
     void on_addFolderButton_clicked();
@@ -30,9 +31,7 @@ private slots:
     void setLocationSlot(QWidget *PB);
 
     void on_nameComboBox_currentIndexChanged(int index);
-    
-    void keyPressEvent(QKeyEvent * event);
-    void keyReleaseEvent(QKeyEvent *event);
+
 
     bool setImage(QString path);
 
@@ -98,6 +97,8 @@ private:
 
     void saveFile();
     bool removeFile(QString filePath);
+
+
 };
 
 #endif // MAINWINDOW_H
