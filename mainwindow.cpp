@@ -12,6 +12,14 @@
 #include <QKeyEvent>
 #include <QtWidgets>
 #include <qvideowidget.h>
+#include <QMediaMetaData>
+#include <QNetworkAccessManager>
+#include <QNetworkRequest>
+#include <QNetworkReply>
+#include <QUrl>
+#include <QUrlQuery>
+#include <QJsonObject>
+#include <QJsonDocument>
 
 
 MainWindow::MainWindow(QWidget *parent) :
@@ -48,6 +56,8 @@ MainWindow::MainWindow(QWidget *parent) :
     player->setVideoOutput(videoWidget);
 
     videoWidget->hide();
+
+    sendRequest(51.412680, 1.807167);
 }
 
 MainWindow::~MainWindow()
@@ -321,6 +331,18 @@ bool MainWindow::setVideo(QString path){
 
 void MainWindow::handleHotKey(QList<int> keys){
     qDebug() << "handleHotKey()";
+    if(keys.length() == 1){
+        switch (keys.at(0)) {
+        case KEY_U:
+            ui->completeNameLineEdit->setText(ui->completeNameLineEdit->text() + "_");
+            break;
+        case KEY_P:
+            ui->completeNameLineEdit->setText(ui->completeNameLineEdit->text() + ".");
+            break;
+        default:
+            break;
+        }
+    }
     if(keys.contains(CONTROL) && keys.size() == 2){
         int index = 1 - keys.indexOf(CONTROL);
         int number = isNumber(keys.at(index));
@@ -481,6 +503,7 @@ void MainWindow::saveFile(){
     {
         saveName = path + "/" + name + "." + ext;
     }
+    insertSorted(name + " (" + ext + ")");
     f.copy(saveName);
 
 
@@ -541,4 +564,127 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
         }
     }
     return false;
+}
+
+void MainWindow::insertSorted(QString name){
+    //(QString::compare("a","b") < 0);//True
+    bool set = false;
+    for(int i = 0; i < savedFileNames.size(); i++){
+        if(!(QString::compare(savedFileNames.at(i),name) < 0)){
+            savedFileNames.insert(i,name);
+            set = true;
+            break;
+        }
+    }
+    if(!set){
+        savedFileNames.append(name);
+    }
+}
+
+void MainWindow::updateSavedNamesListWidget(QString part){
+    while(ui->savedFilesListWidget->count() != 0){
+        QListWidgetItem *item = ui->savedFilesListWidget->takeItem(0);
+        delete item;
+    }
+
+    if(part == ""){
+        //no text in completenamelineedit
+        for(int i = 0; i < savedFileNames.size(); i++){
+            ui->savedFilesListWidget->addItem(savedFileNames.at(i));
+        }
+    }else{
+        //TODO
+        for(int i = 0; i < savedFileNames.size(); i++){
+            if(part == savedFileNames.at(i).left(part.size())){
+                ui->savedFilesListWidget->addItem(savedFileNames.at(i));
+            }
+        }
+    }
+}
+
+/*
+void MainWindow::insertSorted(QString name){
+    int index = 0;
+    int i = 0;
+    int jump = savedFileNames.size()/2;
+    if(savedFileNames.size() > 1){
+        int i = savedFileNames.size()/2;
+        while(true){
+            bool afterFirst = (QString::compare(savedFileNames.at(i - 1),name) < 0); //negative if savedFileNames.at(i - 1) lower then name, true if correct pos
+            bool beforeSecond = (QString::compare(name,savedFileNames.at(i)) < 0);  //true if correct pos
+
+            if(afterFirst && beforeSecond){
+                index = i;
+                break;
+            }else if(afterFirst){
+                //go more to back of list
+                i += jump;
+                jump/=2;
+            }else if(beforeSecond){
+                i -=jump;
+                jump/=2;
+            }
+            if(jump == 0)jump = 1;
+        }
+
+    }else{
+        if(savedFileNames.size() == 0){
+            index = 0;
+        }else{
+            //If negative first string in savedFileNames is lower alphabetically
+            if(QString::compare(savedFileNames.at(0),name) < 0){
+                index = 1;
+            }
+            //else not needed, index is allready 0
+        }
+    }
+    savedFileNames.insert(index,name);
+}
+*/
+
+
+
+
+
+void MainWindow::on_completeNameLineEdit_textChanged(const QString &arg1)
+{
+    updateSavedNamesListWidget(arg1);
+}
+
+QString MainWindow::sendRequest(double latitude, double longitude){
+
+    // create custom temporary event loop on stack
+        QEventLoop eventLoop;
+
+        // "quit()" the event-loop, when the network request "finished()"
+        QNetworkAccessManager mgr;
+        QObject::connect(&mgr, SIGNAL(finished(QNetworkReply*)), &eventLoop, SLOT(quit()));
+        QUrl requestString = QString("https://maps.googleapis.com/maps/api/geocode/json?latlng=" + QString::number(latitude) + "," + QString::number(longitude) + "&key=" + googleMapsAPIKEY);
+        // the HTTP request
+        QNetworkRequest req(requestString);
+        QNetworkReply *reply = mgr.get(req);
+        eventLoop.exec(); // blocks stack until "finished()" has been called
+
+        if (reply->error() == QNetworkReply::NoError) {
+            //success
+            QByteArray response_data = reply->readAll();
+            QJsonDocument json = QJsonDocument::fromJson(response_data);
+            QJsonObject jsonObject = json.object();
+            QJsonArray jsonArray = jsonObject["results"].toArray();
+            QJsonObject obj2 = jsonArray[0].toObject();
+            qDebug() <<  obj2["formatted_address"].toString();
+            delete reply;
+        }
+        else {
+            //failure
+            qDebug() << "Failure" <<reply->errorString();
+            delete reply;
+        }
+        eventLoop.quit();
+        qDebug() << "~sendRequest()";
+}
+void MainWindow::newslot()
+{
+    qDebug() << "Reply!";
+
 }

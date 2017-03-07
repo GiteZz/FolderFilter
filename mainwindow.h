@@ -53,6 +53,10 @@ private slots:
 
     void on_timeSlider_sliderMoved(int position);
 
+    void on_completeNameLineEdit_textChanged(const QString &arg1);
+
+    void newslot();
+
 private:
 
     Ui::MainWindow *ui;
@@ -98,7 +102,13 @@ private:
     void saveFile();
     bool removeFile(QString filePath);
 
+    QList<QString> savedFileNames;
 
+    void insertSorted(QString name);
+    void updateSavedNamesListWidget(QString part);
+
+    QString sendRequest(double latitude, double longitude);
+    QString googleMapsAPIKEY;
 };
 
 #endif // MAINWINDOW_H

@@ -10,6 +10,8 @@ enum keys{
     KEY_S=83,
     KEY_K=75,
     KEY_O=79,
+    KEY_U=85,
+    KEY_P=80,
     KEY_1=38,
     KEY_2=201,
     KEY_3=34,
