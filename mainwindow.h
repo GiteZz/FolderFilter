@@ -115,8 +115,12 @@ private:
     void setNameSlot(int index);
     void openFolder(QString filePath);
 
-    int suggestNumber(std::vector<QString> chosen);
+    void suggestNumber(std::vector<QString> chosen);
     QList<int> suggestedNumbers;
+
+    void clearLayout(QLayout *layout);
+
+    void addSuggestedNumbers();
 };
 
 #endif // MAINWINDOW_H

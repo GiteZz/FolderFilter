@@ -67,11 +67,10 @@ MainWindow::MainWindow(QWidget *parent) :
         foundKeys = false;
     }
 
-    //TEST suggested numbers
-    std::vector<QString> t = {"plant_tuin_01","plant_tuin_01"};
+    //TEST
+    std::vector<QString> t = {"plant_tuin_01","plant_tuin_02","plant_tuin_03","plant_tuin_04","plant_tuin_05","plant_huis_01","plant_huis_02","plant_huis_03","plant_huis_04"};
     suggestNumber(t);
-    qDebug() << suggestedNumbers;
-
+    addSuggestedNumbers();
 
     qDebug() << sendRequest(51.412680, 1.807167);
 }
@@ -537,6 +536,20 @@ bool MainWindow::eventFilter(QObject *object, QEvent *event)
     return false;
 }
 
+void MainWindow::clearLayout(QLayout *layout){
+    QLayoutItem *item;
+    while((item = layout->takeAt(0))) {
+        if (item->layout()) {
+            clearLayout(item->layout());
+            delete item->layout();
+        }
+        if (item->widget()) {
+            delete item->widget();
+        }
+        delete item;
+    }
+}
+
 void MainWindow::insertSorted(QString name){
     //(QString::compare("a","b") < 0);//True
     bool set = false;
@@ -563,6 +576,8 @@ void MainWindow::updateSavedNamesListWidget(QString part){
         for(int i = 0; i < savedFileNames.size(); i++){
             ui->savedFilesListWidget->addItem(savedFileNames.at(i));
         }
+        suggestedNumbers.clear();
+        suggestedNumbers.append(0);
     }else{
         std::vector<QString> chosen;
         for(int i = 0; i < savedFileNames.size(); i++){
@@ -572,6 +587,16 @@ void MainWindow::updateSavedNamesListWidget(QString part){
             }
         }
         suggestNumber(chosen);
+    }
+    addSuggestedNumbers();
+}
+
+void MainWindow::addSuggestedNumbers(){
+    clearLayout(ui->suggestedNumbersLayout);
+
+    for(int i = 0; i < suggestedNumbers.size(); i++){
+        QLabel *add = new QLabel("Suggested number: " + QString::number(suggestedNumbers.at(i)));
+        ui->suggestedNumbersLayout->addWidget(add);
     }
 }
 
@@ -657,10 +682,6 @@ void MainWindow::insertSorted(QString name){
 }
 */
 
-
-
-
-
 void MainWindow::on_completeNameLineEdit_textChanged(const QString &arg1)
 {
     updateSavedNamesListWidget(arg1);
@@ -709,7 +730,7 @@ void MainWindow::handleHotKey(QList<int> keys){
     qDebug() << "handleHotKey()";
     if(keys.length() == 1){
         int index = isNumber(keys.at(0));
-        if(index >=0){
+        if(index >=0 && index < allowableNames.size()){
             setNameSlot(index);
         }else{
             switch (keys.at(0)) {
@@ -721,10 +742,6 @@ void MainWindow::handleHotKey(QList<int> keys){
                 break;
             case KEY_$:
                 openFolder("/home/gilles/Documents/Programmeren/Qt/FolderFilter/TrainingFolder");
-                break;
-            case KEY_N:
-                //TODO suggested number
-                ui->suggestNumberLabel->setText("Suggested number: " + QString::number(suggestedNumbers.at(0)));
                 break;
             default:
                 break;
@@ -745,10 +762,17 @@ void MainWindow::handleHotKey(QList<int> keys){
             currentLocIndex = number;
             ui->locationComboBox->setCurrentIndex(currentLocIndex);
         }
+    }else if (keys.contains(KEY_N) && keys.size()==2){
+        int index = 1 - keys.indexOf(KEY_N);
+        int number = isNumber(keys.at(index));
+        if(number > -1 && number < suggestedNumbers.size()){
+            ui->completeNameLineEdit->setText(ui->completeNameLineEdit->text() + QString::number(suggestedNumbers.at(number)));
+        }
     }
 }
 
 int MainWindow::isNumber(int key){
+    //key 1 above keyboard gives 0 back, reason: lists start at 0
     switch (key)
     {
     case 38:
@@ -774,6 +798,7 @@ int MainWindow::isNumber(int key){
     case 48:
         return 9;
     }
+
     if(key>=49 && key<=57)return key-49;
     return -1;
 }
