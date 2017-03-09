@@ -7,6 +7,7 @@
 #include <QObject>
 #include <QWindow>
 #include <QMetaClassInfo>
+#include "hotkey.h"
 
 class QApplicationFilter: public QObject
 {
@@ -44,11 +45,13 @@ class QApplicationFilter: public QObject
         }
 };
 
+Hotkey *hKey;
 int main(int argc, char *argv[])
 {
     QApplication a(argc, argv);
     MainWindow *w = new MainWindow();
     a.installEventFilter(new QApplicationFilter(w));
+
     w->show();
 
     return a.exec();

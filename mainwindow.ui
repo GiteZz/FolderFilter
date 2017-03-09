@@ -220,6 +220,19 @@
      </rect>
     </property>
    </widget>
+   <widget class="QLabel" name="suggestNumberLabel">
+    <property name="geometry">
+     <rect>
+      <x>1070</x>
+      <y>630</y>
+      <width>181</width>
+      <height>17</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Suggested number: </string>
+    </property>
+   </widget>
   </widget>
   <widget class="QMenuBar" name="menuBar">
    <property name="geometry">

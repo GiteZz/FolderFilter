@@ -107,8 +107,16 @@ private:
     void insertSorted(QString name);
     void updateSavedNamesListWidget(QString part);
 
-    QString sendRequest(double latitude, double longitude);
+    void sendRequest();
     QString googleMapsAPIKEY;
+    bool foundKeys;
+
+    QString sendRequest(double latitude, double longitude);
+    void setNameSlot(int index);
+    void openFolder(QString filePath);
+
+    int suggestNumber(std::vector<QString> chosen);
+    QList<int> suggestedNumbers;
 };
 
 #endif // MAINWINDOW_H

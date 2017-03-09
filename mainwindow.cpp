@@ -57,7 +57,23 @@ MainWindow::MainWindow(QWidget *parent) :
 
     videoWidget->hide();
 
-    sendRequest(51.412680, 1.807167);
+    QFile f("API_KEYS");
+    if(f.open(QIODevice::ReadOnly | QIODevice::Text)){
+        foundKeys = true;
+        QTextStream in(&f);
+        googleMapsAPIKEY = in.readLine();
+    }else {
+        qDebug() << "Couldn't open file";
+        foundKeys = false;
+    }
+
+    //TEST suggested numbers
+    std::vector<QString> t = {"plant_tuin_01","plant_tuin_01"};
+    suggestNumber(t);
+    qDebug() << suggestedNumbers;
+
+
+    qDebug() << sendRequest(51.412680, 1.807167);
 }
 
 MainWindow::~MainWindow()
@@ -78,6 +94,13 @@ void MainWindow::openFolder(){
                                                        "",
                                                        QFileDialog::ShowDirsOnly |
                                                        QFileDialog::DontResolveSymlinks);
+    qDebug() << "Adding Files from: " << filePath;
+    openFolder(filePath);
+}
+
+void MainWindow::openFolder(QString filePath){
+    qDebug() << "openFolder()";
+
     qDebug() << "Adding Files from: " << filePath;
 
 
@@ -258,6 +281,10 @@ void MainWindow::setNameSlot(QWidget *PB){
     qDebug() << "~setNameSlot()";
 }
 
+void MainWindow::setNameSlot(int index){
+    ui->completeNameLineEdit->setText(ui->completeNameLineEdit->text() + nameLEList->at(index)->text());
+}
+
 void MainWindow::setLocationSlot(QWidget *PB){
     qDebug() << "setLocationSlot()";
 
@@ -311,6 +338,9 @@ bool MainWindow::setImage(QString path){
     ui->imageLabel->setPixmap(image);
     ui->imageLabel->raise();
     ui->imageLabel->show();
+
+    //Get the metadata
+    //TODO
 }
 
 bool MainWindow::setAudio(QString path){
@@ -329,36 +359,7 @@ bool MainWindow::setVideo(QString path){
     player->play();
 }
 
-void MainWindow::handleHotKey(QList<int> keys){
-    qDebug() << "handleHotKey()";
-    if(keys.length() == 1){
-        switch (keys.at(0)) {
-        case KEY_U:
-            ui->completeNameLineEdit->setText(ui->completeNameLineEdit->text() + "_");
-            break;
-        case KEY_P:
-            ui->completeNameLineEdit->setText(ui->completeNameLineEdit->text() + ".");
-            break;
-        default:
-            break;
-        }
-    }
-    if(keys.contains(CONTROL) && keys.size() == 2){
-        int index = 1 - keys.indexOf(CONTROL);
-        int number = isNumber(keys.at(index));
-        if(number > -1 && number < allowableNames.size()){
-            currentNameIndex = number;
-            ui->nameComboBox->setCurrentIndex(currentNameIndex);
-        }
-    }else if(keys.contains(ALT) && keys.size() == 2){
-        int index = 1 - keys.indexOf(ALT);
-        int number = isNumber(keys.at(index));
-        if(number > -1 && number < allowableLocations.size()){
-            currentLocIndex = number;
-            ui->locationComboBox->setCurrentIndex(currentLocIndex);
-        }
-    }
-}
+
 void MainWindow::handleKeys(){
     std::vector<int> numbers = containsNumber();
     if(currentKeys.contains(SHIFT) && numbers.size()>0){
@@ -366,36 +367,6 @@ void MainWindow::handleKeys(){
             
         }
     }
-}
-
-int MainWindow::isNumber(int key){
-    switch (key)
-    {
-    case 38:
-        return 0;
-    case 201:
-        return 1;
-    case 34:
-        return 2;
-    case 39:
-        return 3;
-    case 40:
-        return 4;
-    case 167:
-        return 5;
-    case 200:
-        return 6;
-    case 33:
-        return 7;
-    case 199:
-        return 8;
-    case 192:
-        return 9;
-    case 48:
-        return 9;
-    }
-    if(key>=49 && key<=57)return key-49;
-    return -1;
 }
 
 std::vector<int> MainWindow::containsNumber(){
@@ -593,11 +564,55 @@ void MainWindow::updateSavedNamesListWidget(QString part){
             ui->savedFilesListWidget->addItem(savedFileNames.at(i));
         }
     }else{
-        //TODO
+        std::vector<QString> chosen;
         for(int i = 0; i < savedFileNames.size(); i++){
             if(part == savedFileNames.at(i).left(part.size())){
+                chosen.push_back(savedFileNames.at(i));
                 ui->savedFilesListWidget->addItem(savedFileNames.at(i));
             }
+        }
+        suggestNumber(chosen);
+    }
+}
+
+void MainWindow::suggestNumber(std::vector<QString> chosen){
+    suggestedNumbers.clear();
+    if(chosen.size() == 0){
+        suggestedNumbers.push_back(0);
+    }else{
+        //chose should by alphabe
+        int i = 0;
+        QString currentWord;
+        while(i < chosen.size()){
+            int sug = 0;
+            //Run trough one word, find the end digit and the word before it, if no digit found get intire word
+            for(int l = 0; l < chosen.at(i).length(); l++){
+                if(chosen.at(i).at(l).isDigit()){
+                    sug = chosen.at(i).right(chosen.at(i).length() - l).toInt();
+                    currentWord = chosen.at(i).left(l);
+                    break;
+                }else if(l == chosen.at(i).length() - 1){
+                    currentWord = chosen.at(i);
+                }
+            }
+            i++;
+            qDebug() << "chose word: " << currentWord;
+            while(i < chosen.size()){
+                if(chosen.at(i).left(currentWord.length()) == currentWord){
+                    qDebug() << "comp";
+                    //update digit
+                    sug = chosen.at(i).right(chosen.at(i).length() - currentWord.length()).toInt();
+                    i++;
+                }else{
+                    i++;
+                    break;
+                }
+            }
+
+            if(!suggestedNumbers.contains(sug)){
+                suggestedNumbers.append(sug);
+            }
+
         }
     }
 }
@@ -672,19 +687,93 @@ QString MainWindow::sendRequest(double latitude, double longitude){
             QJsonObject jsonObject = json.object();
             QJsonArray jsonArray = jsonObject["results"].toArray();
             QJsonObject obj2 = jsonArray[0].toObject();
-            qDebug() <<  obj2["formatted_address"].toString();
             delete reply;
+            return obj2["formatted_address"].toString();
+
         }
         else {
             //failure
             qDebug() << "Failure" <<reply->errorString();
+            return "";
             delete reply;
         }
-        eventLoop.quit();
-        qDebug() << "~sendRequest()";
+
 }
 void MainWindow::newslot()
 {
     qDebug() << "Reply!";
 
+}
+
+void MainWindow::handleHotKey(QList<int> keys){
+    qDebug() << "handleHotKey()";
+    if(keys.length() == 1){
+        int index = isNumber(keys.at(0));
+        if(index >=0){
+            setNameSlot(index);
+        }else{
+            switch (keys.at(0)) {
+            case KEY_U:
+                ui->completeNameLineEdit->setText(ui->completeNameLineEdit->text() + "_");
+                break;
+            case KEY_P:
+                ui->completeNameLineEdit->setText(ui->completeNameLineEdit->text() + ".");
+                break;
+            case KEY_$:
+                openFolder("/home/gilles/Documents/Programmeren/Qt/FolderFilter/TrainingFolder");
+                break;
+            case KEY_N:
+                //TODO suggested number
+                ui->suggestNumberLabel->setText("Suggested number: " + QString::number(suggestedNumbers.at(0)));
+                break;
+            default:
+                break;
+            }
+        }
+    }
+    if(keys.contains(CONTROL) && keys.size() == 2){
+        int index = 1 - keys.indexOf(CONTROL);
+        int number = isNumber(keys.at(index));
+        if(number > -1 && number < allowableNames.size()){
+            currentNameIndex = number;
+            ui->nameComboBox->setCurrentIndex(currentNameIndex);
+        }
+    }else if(keys.contains(ALT) && keys.size() == 2){
+        int index = 1 - keys.indexOf(ALT);
+        int number = isNumber(keys.at(index));
+        if(number > -1 && number < allowableLocations.size()){
+            currentLocIndex = number;
+            ui->locationComboBox->setCurrentIndex(currentLocIndex);
+        }
+    }
+}
+
+int MainWindow::isNumber(int key){
+    switch (key)
+    {
+    case 38:
+        return 0;
+    case 201:
+        return 1;
+    case 34:
+        return 2;
+    case 39:
+        return 3;
+    case 40:
+        return 4;
+    case 167:
+        return 5;
+    case 200:
+        return 6;
+    case 33:
+        return 7;
+    case 199:
+        return 8;
+    case 192:
+        return 9;
+    case 48:
+        return 9;
+    }
+    if(key>=49 && key<=57)return key-49;
+    return -1;
 }

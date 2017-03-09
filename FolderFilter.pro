@@ -14,11 +14,13 @@ TEMPLATE = app
 
 SOURCES += main.cpp\
         mainwindow.cpp \
-    handlesettings.cpp
+    handlesettings.cpp \
+    hotkey.cpp
 
 HEADERS  += mainwindow.h \
     handlesettings.h \
     structs.h \
-    enums.h
+    enums.h \
+    hotkey.h
 
 FORMS    += mainwindow.ui

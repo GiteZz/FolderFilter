@@ -21,7 +21,8 @@ enum keys{
     KEY_7=200,
     KEY_8=33,
     KEY_9=199,
-    KEY_0=192
+    KEY_0=192,
+    KEY_$=36
 };
 
 #endif // ENUMS_H
